@@ -49,7 +49,7 @@ class ShellHelper:
         """Run the shell helper in interactive mode."""
         while True:
             try:
-                task = input("\nWhat would you like to do? (or 'exit' to quit): ").strip()
+                task = input("\nWhat would you like to do? ('exit' to quit): ").strip()
                 if task.lower() == "exit":
                     break
 
