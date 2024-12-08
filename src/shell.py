@@ -1,9 +1,20 @@
 import argparse
 import subprocess
+import sys
 from typing import List, Tuple
 
 from loguru import logger
 from openai import OpenAI
+
+
+def setup_logging(debug: bool):
+    """Configure logging based on debug mode."""
+    logger.remove()  # Remove default handler
+    if debug:
+        logger.add(sys.stderr, level="DEBUG")
+    else:
+        # Only show ERROR and CRITICAL by default
+        logger.add(sys.stderr, level="ERROR")
 
 
 class ShellHelper:
@@ -60,39 +71,42 @@ class ShellHelper:
                     continue
 
                 if len(commands) > 1:
-                    logger.info(f"Suggesting {len(commands)} commands to complete this task:")
+                    print(f"\nSuggested commands:")
                     for i, cmd in enumerate(commands, 1):
-                        logger.info(f"{i}. {cmd}")
+                        print(f"{i}. {cmd}")
+                    logger.debug(f"Suggesting {len(commands)} commands to complete this task")
 
                     if not self.trust_mode:
                         if input("\nExecute all commands? (y/n): ").lower() != "y":
-                            logger.info("Command chain cancelled")
+                            print("Command chain cancelled")
                             continue
 
                 for cmd in commands:
                     if not self.trust_mode:
                         print(f"\nSuggested command: {cmd}")
                         if input("Execute this command? (y/n): ").lower() != "y":
-                            logger.info("Command chain cancelled")
+                            print("Command chain cancelled")
                             break
                     else:
-                        logger.info(f"Executing: {cmd}")
+                        print(f"\nExecuting: {cmd}")
 
                     success, output = self.execute_command(cmd)
                     if success:
-                        logger.success("Command executed successfully!")
+                        print("✓ Success!")
+                        logger.debug("Command executed successfully")
                         if output:
                             print(output)
                     else:
+                        print(f"✗ Failed: {output}")
                         logger.error(f"Command failed: {output}")
                         break
 
             except KeyboardInterrupt:
-                logger.info("\nExiting...")
+                print("\nExiting...")
                 break
             except Exception as e:
                 logger.error(f"An error occurred: {e}")
-                logger.info("Please try again or type 'exit' to quit")
+                print("\nAn error occurred. Please try again or type 'exit' to quit")
 
 
 def parse_args():
@@ -102,6 +116,11 @@ def parse_args():
         action="store_true",
         help="Run in trust mode (executes commands without asking for permission)",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging",
+    )
     return parser.parse_args()
 
 
@@ -109,12 +128,15 @@ if __name__ == "__main__":
     from src.settings import OPENAI_API_KEY
 
     args = parse_args()
+    setup_logging(args.debug)
 
     try:
         helper = ShellHelper(api_key=OPENAI_API_KEY, trust_mode=args.trust)
-        logger.success("Welcome to the LLM Shell Helper!")
+        print("Welcome to the LLM Shell Helper!")
+        if args.debug:
+            print("Debug mode enabled")
         if helper.trust_mode:
-            logger.warning("Running in trust mode - commands will execute without confirmation")
+            print("Trust mode enabled - commands will execute without confirmation")
         print("--------------------------------")
         helper.run_interactive()
     except Exception as e:
