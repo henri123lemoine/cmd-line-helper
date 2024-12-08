@@ -1,3 +1,4 @@
+import argparse
 import subprocess
 from typing import List, Tuple
 
@@ -6,9 +7,10 @@ from openai import OpenAI
 
 
 class ShellHelper:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, trust_mode: bool = False):
         """Initialize the shell helper with OpenAI API key."""
         self.client = OpenAI(api_key=api_key)
+        self.trust_mode = trust_mode
 
         self.system_prompt = """You are a helpful CLI assistant that suggests bash commands.
         Your goal is to provide complete solutions that accomplish the full task.
@@ -49,7 +51,7 @@ class ShellHelper:
         """Run the shell helper in interactive mode."""
         while True:
             try:
-                task = input("\nWhat would you like to do? ('exit' to quit): ").strip()
+                task = input("\nWhat would you like to do? (or 'exit' to quit): ").strip()
                 if task.lower() == "exit":
                     break
 
@@ -58,15 +60,23 @@ class ShellHelper:
                     continue
 
                 if len(commands) > 1:
-                    logger.debug(f"Suggesting {len(commands)} commands to complete this task:")
+                    logger.info(f"Suggesting {len(commands)} commands to complete this task:")
                     for i, cmd in enumerate(commands, 1):
-                        logger.debug(f"{i}. {cmd}")
+                        logger.info(f"{i}. {cmd}")
+
+                    if not self.trust_mode:
+                        if input("\nExecute all commands? (y/n): ").lower() != "y":
+                            logger.info("Command chain cancelled")
+                            continue
 
                 for cmd in commands:
-                    print(f"\nSuggested command: {cmd}")
-                    if input("Execute this command? (y/n): ").lower() != "y":
-                        logger.debug("Command chain cancelled")
-                        break
+                    if not self.trust_mode:
+                        print(f"\nSuggested command: {cmd}")
+                        if input("Execute this command? (y/n): ").lower() != "y":
+                            logger.info("Command chain cancelled")
+                            break
+                    else:
+                        logger.info(f"Executing: {cmd}")
 
                     success, output = self.execute_command(cmd)
                     if success:
@@ -85,12 +95,26 @@ class ShellHelper:
                 logger.info("Please try again or type 'exit' to quit")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="LLM Shell Helper")
+    parser.add_argument(
+        "--trust",
+        action="store_true",
+        help="Run in trust mode (executes commands without asking for permission)",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
     from src.settings import OPENAI_API_KEY
 
+    args = parse_args()
+
     try:
-        helper = ShellHelper(api_key=OPENAI_API_KEY)
+        helper = ShellHelper(api_key=OPENAI_API_KEY, trust_mode=args.trust)
         logger.success("Welcome to the LLM Shell Helper!")
+        if helper.trust_mode:
+            logger.warning("Running in trust mode - commands will execute without confirmation")
         print("--------------------------------")
         helper.run_interactive()
     except Exception as e:
