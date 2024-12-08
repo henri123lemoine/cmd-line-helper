@@ -10,7 +10,7 @@ curl -L https://raw.githubusercontent.com/yourusername/cmd-line-helper/main/inst
 
 This repository runs with `uv`.
 
-## Manual Installation
+## Installation
 
 1. Clone the repository:
     ```bash

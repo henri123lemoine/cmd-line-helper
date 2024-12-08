@@ -216,7 +216,7 @@ wheels = [
 [[package]]
 name = "cmd-line-helper"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "ell-ai", extra = ["all"] },
     { name = "ipykernel" },

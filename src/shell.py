@@ -117,7 +117,7 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main():
     from src.settings import OPENAI_API_KEY
 
     args = parse_args()
@@ -132,3 +132,7 @@ if __name__ == "__main__":
     except Exception as e:
         logger.critical(f"Fatal error: {e}")
         exit(1)
+
+
+if __name__ == "__main__":
+    main()
