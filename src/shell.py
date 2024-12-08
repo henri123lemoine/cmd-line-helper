@@ -1,6 +1,7 @@
 import subprocess
 from typing import List, Tuple
 
+from loguru import logger
 from openai import OpenAI
 
 
@@ -10,11 +11,18 @@ class ShellHelper:
         self.client = OpenAI(api_key=api_key)
 
         self.system_prompt = """You are a helpful CLI assistant that suggests bash commands.
-        When suggesting commands, only return the exact command to run, nothing else.
-        If multiple commands are needed, return them one per line.
+        Your goal is to provide complete solutions that accomplish the full task.
+        Always try to think if additional commands would be helpful to complete the task fully.
+        For example:
+        - When committing to git, consider if the files need to be added first
+        - When creating directories, consider if any files need to be created inside
+        - When installing packages, consider if the environment needs to be activated
+        - When starting services, consider if config files need to be created
+        
+        Return only the exact commands to run, one per line, nothing else.
         Do not include explanations or markdown formatting."""
 
-    def get_command_suggestion(self, task_description: str, chain_mode: bool = False) -> List[str]:
+    def get_command_suggestion(self, task_description: str) -> List[str]:
         """Get command suggestion(s) from LLM."""
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -49,26 +57,32 @@ class ShellHelper:
                 if not commands:
                     continue
 
+                if len(commands) > 1:
+                    logger.debug(f"Suggesting {len(commands)} commands to complete this task:")
+                    for i, cmd in enumerate(commands, 1):
+                        logger.debug(f"{i}. {cmd}")
+
                 for cmd in commands:
                     print(f"\nSuggested command: {cmd}")
                     if input("Execute this command? (y/n): ").lower() != "y":
-                        continue
+                        logger.debug("Command chain cancelled")
+                        break
 
                     success, output = self.execute_command(cmd)
                     if success:
-                        print("Success!")
+                        logger.success("Command executed successfully!")
                         if output:
                             print(output)
                     else:
-                        print(f"Failed: {output}")
+                        logger.error(f"Command failed: {output}")
                         break
 
             except KeyboardInterrupt:
-                print("\nExiting...")
+                logger.info("\nExiting...")
                 break
             except Exception as e:
-                print(f"\nAn error occurred: {e}")
-                print("Please try again or type 'exit' to quit")
+                logger.error(f"An error occurred: {e}")
+                logger.info("Please try again or type 'exit' to quit")
 
 
 if __name__ == "__main__":
@@ -76,9 +90,9 @@ if __name__ == "__main__":
 
     try:
         helper = ShellHelper(api_key=OPENAI_API_KEY)
-        print("Welcome to the LLM Shell Helper!")
+        logger.success("Welcome to the LLM Shell Helper!")
         print("--------------------------------")
         helper.run_interactive()
     except Exception as e:
-        print(f"Fatal error: {e}")
+        logger.critical(f"Fatal error: {e}")
         exit(1)
