@@ -1,45 +1,63 @@
-# cmd_line_helper
+# Command Line Helper
 
-My submission for Tyler's AI Control stream.
+An AI-powered command-line helper that suggests and executes shell commands.
 
-## Installation
+## Quick Install
 
 ```bash
-pip install cmd_line_helper
+curl -L https://raw.githubusercontent.com/yourusername/cmd-line-helper/main/install.sh | bash
 ```
+
+This repository runs with `uv`.
+
+## Manual Installation
+
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/henri123lemoine/cmd-line-helper.git
+    cd cmd-line-helper
+    ```
+
+2. Install dependencies:
+    ```bash
+    uv sync
+    ```
+
+3. Run the local installation script:
+    ```bash
+    chmod +x ./local-install.sh
+    ./local-install.sh
+    ```
 
 ## Usage
 
-TODO
+1. Set your OpenAI API key:
+    ```bash
+    export OPENAI_API_KEY=your-key-here
+    ```
 
-## Example
+2. Run the helper:
+    ```bash
+    cmd-helper
+    ```
+
+Or with trust mode (no command confirmations):
+```bash
+cmd-helper --trust
+```
+
+## Examples
 
 ```bash
-~/Documents/Programming/PersonalProjects/cmd_line_helper (main*) » uv run -m src.shell
+$ cmd-helper
 Welcome to the LLM Shell Helper!
---------------------------------
 
-What would you like to do? (or 'exit' to quit): commit file .env.example to git
-2024-12-08 18:10:44,460 [INFO] httpx: HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+What would you like to do? (or 'exit' to quit): commit my recent changes
 
-Suggested command: git add .env.example
-Execute this command? (y/n): y
-Success!
-
-Suggested command: git commit -m "Add .env.example file"
-Execute this command? (y/n): y   
-Success!
-[main 5a983f6] Add .env.example file
- 1 file changed, 3 insertions(+)
- create mode 100644 .env.example
-
-
-What would you like to do? (or 'exit' to quit): now, push
-2024-12-08 18:11:02,061 [INFO] httpx: HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
-
-Suggested command: git push
-Execute this command? (y/n): y
-Success!
-
-What would you like to do? (or 'exit' to quit): exit
+>>> git add .
+✓ Success!
+>>> git commit -m "Update command helper implementation"
+✓ Success!
+[main a1b2c3d] Update command helper implementation
+ 3 files changed, 45 insertions(+), 12 deletions(-)
 ```
