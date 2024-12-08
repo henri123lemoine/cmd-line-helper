@@ -72,8 +72,6 @@ class ShellHelper:
 
 
 if __name__ == "__main__":
-    import os
-
     from src.settings import OPENAI_API_KEY
 
     try:
