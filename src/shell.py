@@ -9,11 +9,10 @@ from openai import OpenAI
 
 def setup_logging(debug: bool):
     """Configure logging based on debug mode."""
-    logger.remove()  # Remove default handler
+    logger.remove()
     if debug:
         logger.add(sys.stderr, level="DEBUG")
     else:
-        # Only show ERROR and CRITICAL by default
         logger.add(sys.stderr, level="ERROR")
 
 
@@ -70,32 +69,26 @@ class ShellHelper:
                 if not commands:
                     continue
 
-                if len(commands) > 1:
-                    print(f"\nSuggested commands:")
-                    for i, cmd in enumerate(commands, 1):
-                        print(f"{i}. {cmd}")
-                    logger.debug(f"Suggesting {len(commands)} commands to complete this task")
-
-                    if not self.trust_mode:
-                        if input("\nExecute all commands? (y/n): ").lower() != "y":
-                            print("Command chain cancelled")
-                            continue
+                if not self.trust_mode and len(commands) > 1:
+                    if input("\nExecute all commands? (y/n): ").lower() != "y":
+                        print("Command chain cancelled")
+                        continue
 
                 for cmd in commands:
+                    logger.debug(f"Executing command: {cmd}")
                     if not self.trust_mode:
-                        print(f"\nSuggested command: {cmd}")
+                        print(f"\n>>> {cmd}")
                         if input("Execute this command? (y/n): ").lower() != "y":
                             print("Command chain cancelled")
                             break
                     else:
-                        print(f"\nExecuting: {cmd}")
+                        print(f"\n>>> {cmd}")
 
                     success, output = self.execute_command(cmd)
                     if success:
                         print("✓ Success!")
-                        logger.debug("Command executed successfully")
-                        if output:
-                            print(output)
+                        if output.strip():
+                            print(output.rstrip())
                     else:
                         print(f"✗ Failed: {output}")
                         logger.error(f"Command failed: {output}")
@@ -132,12 +125,9 @@ if __name__ == "__main__":
 
     try:
         helper = ShellHelper(api_key=OPENAI_API_KEY, trust_mode=args.trust)
-        print("Welcome to the LLM Shell Helper!")
-        if args.debug:
-            print("Debug mode enabled")
-        if helper.trust_mode:
-            print("Trust mode enabled - commands will execute without confirmation")
-        print("--------------------------------")
+        print(
+            "Welcome to the LLM Shell Helper!" + (" (trust mode activated)" if args.trust else "")
+        )
         helper.run_interactive()
     except Exception as e:
         logger.critical(f"Fatal error: {e}")
