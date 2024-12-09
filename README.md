@@ -34,21 +34,32 @@ cd cmd-line-helper
 ## Examples
 
 ```bash
-$ cmd-helper --trust
+cmd-helper --trust
 Welcome to the LLM Shell Helper! (trust mode activated)
 
-What would you like to do? (or 'exit' to quit): commit the changes to shell.py
+What would you like to do? (or 'exit' to quit): hey
 
->>> git add shell.py
+👋 Hello! How can I help you?
 
-🔄 Attempting recovery with modified command...
+What would you like to do? (or 'exit' to quit): can you tlel me hwo to commit a ne wfile called bob.py
 
->>> git add src/shell.py
+🔍 Gathering system information...
+
+📊 Analyzing current state...
+
+>>> touch bob.py
 ✓ Success!
 
->>> git commit -m "Committing changes to shell.py"
+>>> git add bob.py
 ✓ Success!
-[main 06bb89e] Committing changes to shell.py
- 1 file changed, 74 insertions(+), 14 deletions(-)
 
-What would you like to do? (or 'exit' to quit): ```
+>>> git commit -m "Add bob.py"
+✓ Success!
+[main 8577392] Add bob.py
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 bob.py
+
+📊 Analyzing current state...
+
+✓ Task completed successfully!
+```
