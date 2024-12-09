@@ -1,20 +1,23 @@
 import argparse
 import shlex
 import subprocess
-import sys
-from typing import List, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Optional, Tuple
 
+import ell
 from loguru import logger
 from openai import OpenAI
 
+from src.logging import setup_logging
 
-def setup_logging(debug: bool):
-    """Configure logging based on debug mode."""
-    logger.remove()
-    if debug:
-        logger.add(sys.stderr, level="DEBUG")
-    else:
-        logger.add(sys.stderr, level="ERROR")
+
+@ell.simple(model="chatgpt-4o-latest")
+def cli_assistant(intput_1: str, input_2: str):
+    """You are a helpful CLI assistant that suggests bash commands."""
+
+    prompt = f"""Your goal is to provide ..."""
+
+    return prompt
 
 
 class ShellHelper:
@@ -22,61 +25,76 @@ class ShellHelper:
         """Initialize the shell helper with OpenAI API key."""
         self.client = OpenAI(api_key=api_key)
         self.trust_mode = trust_mode
+        self.command_context: List[Dict] = []  # Store recent command history
 
         self.system_prompt = """You are a helpful CLI assistant that suggests bash commands.
         Your goal is to provide complete solutions that accomplish the full task.
         Always try to think if additional commands would be helpful to complete the task fully.
-        For example:
-        - When committing to git, consider if the files need to be added first
-        - When creating directories, consider if any files need to be created inside
-        - When installing packages, consider if the environment needs to be activated
-        - When starting services, consider if config files need to be created
         
-        Return only the exact commands to run, one per line, nothing else.
-        Do not include explanations or markdown formatting."""
+        IMPORTANT: Return ONLY the exact commands to run, one per line. DO NOT include any explanations 
+        or descriptions. Return ONLY valid shell commands that can be executed directly.
+        
+        Example good response:
+        ls -la
+        
+        Example bad response:
+        If you want to see files, use: ls -la
+        
+        Bad responses will cause errors. Return ONLY the command itself."""
 
     def _get_directory_info(self) -> str:
         """Get directory structure using tree or ls as fallback."""
         try:
             result = subprocess.run(["tree"], capture_output=True, text=True)
             if result.returncode == 0:
-                # Truncate tree output to first 10 and last 10 output lines
-                return "\n".join(
-                    result.stdout.split("\n")[:10] + ["..."] + result.stdout.split("\n")[-10:]
-                )
+                return result.stdout.strip()
         except FileNotFoundError:
             pass
 
-        # Fallback to ls if tree fails or isn't available
         try:
             result = subprocess.run(["ls", "-R"], capture_output=True, text=True)
-            return result.stdout
+            return result.stdout.strip()
         except Exception as e:
             logger.error(f"Failed to get directory info: {e}")
             return "Unable to get directory structure"
 
+    def _add_to_context(self, command: str, output: str, success: bool):
+        """Add a command and its output to the context history."""
+        self.command_context.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "command": command,
+                "output": output[:500] if output else "",  # Truncate long outputs
+                "success": success,
+            }
+        )
+        # Keep only last 5 commands for context
+        self.command_context = self.command_context[-5:]
+
     def get_command_suggestion(
         self, task_description: str, error_context: Optional[str] = None
     ) -> List[str]:
-        """Get command suggestion(s) from LLM, optionally with error context."""
+        """Get command suggestion(s) from LLM with command history context."""
+        # Build context string from command history
+        context = ""
+        if self.command_context:
+            context = "Recent commands and their outputs:\n"
+            for cmd in self.command_context:
+                context += f"$ {cmd['command']}\n"
+                if cmd["output"]:
+                    context += f"Output: {cmd['output']}\n"
+                context += f"Status: {'Success' if cmd['success'] else 'Failed'}\n\n"
+
         messages = [{"role": "system", "content": self.system_prompt}]
 
-        if error_context:
-            # Add error context to the prompt
-            messages.append(
-                {
-                    "role": "user",
-                    "content": f"""The previous command failed with the following context:
-                {error_context}
-                
-                Current directory structure:
-                {self._get_directory_info()}
-                
-                Please provide a corrected command for: {task_description}""",
-                }
-            )
-        else:
-            messages.append({"role": "user", "content": task_description})
+        content = f"""Current directory structure:
+{self._get_directory_info()}
+
+{context if context else ''}
+{f'Error context:\n{error_context}\n' if error_context else ''}
+Task: {task_description}"""
+
+        messages.append({"role": "user", "content": content})
 
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -91,8 +109,11 @@ class ShellHelper:
             args = shlex.split(command)
             result = subprocess.run(args, shell=False, capture_output=True, text=True, check=False)
 
-            if result.returncode != 0:
-                # Command failed, get new suggestion with error context
+            success = result.returncode == 0
+            output = result.stdout if success else result.stderr
+            self._add_to_context(command, output, success)
+
+            if not success:
                 error_context = f"""
                 Failed command: {command}
                 Error output: {result.stderr}
@@ -115,13 +136,19 @@ class ShellHelper:
                 else:
                     return False, "Could not generate recovery command"
 
-            return True, result.stdout
+            return success, output
 
         except Exception as e:
+            self._add_to_context(command, str(e), False)
             return False, str(e)
 
     def run_interactive(self):
         """Run the shell helper in interactive mode."""
+        print(
+            "Welcome to the LLM Shell Helper!"
+            + (" (trust mode activated)" if self.trust_mode else "")
+        )
+
         while True:
             try:
                 task = input("\nWhat would you like to do? (or 'exit' to quit): ").strip()
