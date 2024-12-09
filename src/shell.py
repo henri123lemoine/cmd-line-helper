@@ -1,7 +1,8 @@
 import argparse
+import shlex
 import subprocess
 import sys
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from loguru import logger
 from openai import OpenAI
@@ -34,26 +35,88 @@ class ShellHelper:
         Return only the exact commands to run, one per line, nothing else.
         Do not include explanations or markdown formatting."""
 
-    def get_command_suggestion(self, task_description: str) -> List[str]:
-        """Get command suggestion(s) from LLM."""
+    def _get_directory_info(self) -> str:
+        """Get directory structure using tree or ls as fallback."""
+        try:
+            result = subprocess.run(["tree"], capture_output=True, text=True)
+            if result.returncode == 0:
+                # Truncate tree output to first 10 and last 10 output lines
+                return "\n".join(
+                    result.stdout.split("\n")[:10] + ["..."] + result.stdout.split("\n")[-10:]
+                )
+        except FileNotFoundError:
+            pass
+
+        # Fallback to ls if tree fails or isn't available
+        try:
+            result = subprocess.run(["ls", "-R"], capture_output=True, text=True)
+            return result.stdout
+        except Exception as e:
+            logger.error(f"Failed to get directory info: {e}")
+            return "Unable to get directory structure"
+
+    def get_command_suggestion(
+        self, task_description: str, error_context: Optional[str] = None
+    ) -> List[str]:
+        """Get command suggestion(s) from LLM, optionally with error context."""
+        messages = [{"role": "system", "content": self.system_prompt}]
+
+        if error_context:
+            # Add error context to the prompt
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"""The previous command failed with the following context:
+                {error_context}
+                
+                Current directory structure:
+                {self._get_directory_info()}
+                
+                Please provide a corrected command for: {task_description}""",
+                }
+            )
+        else:
+            messages.append({"role": "user", "content": task_description})
+
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": task_description},
-            ],
+            messages=messages,
         )
         commands = response.choices[0].message.content.strip().split("\n")
         return [cmd.strip() for cmd in commands if cmd.strip()]
 
-    def execute_command(self, command: str) -> Tuple[bool, str]:
+    def execute_command(self, command: str, task_description: str) -> Tuple[bool, str]:
         """Execute a shell command and return success status and output."""
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
-            return (
-                result.returncode == 0,
-                result.stdout if result.returncode == 0 else result.stderr,
-            )
+            args = shlex.split(command)
+            result = subprocess.run(args, shell=False, capture_output=True, text=True, check=False)
+
+            if result.returncode != 0:
+                # Command failed, get new suggestion with error context
+                error_context = f"""
+                Failed command: {command}
+                Error output: {result.stderr}
+                Return code: {result.returncode}
+                """
+
+                logger.debug("Command failed, getting new suggestion with error context")
+                new_commands = self.get_command_suggestion(task_description, error_context)
+
+                if new_commands:
+                    print("\n🔄 Attempting recovery with modified command...")
+                    for new_cmd in new_commands:
+                        print(f"\n>>> {new_cmd}")
+                        if not self.trust_mode:
+                            if input("Execute this modified command? (y/n): ").lower() != "y":
+                                return False, "Modified command execution cancelled by user"
+
+                        # Execute the new command
+                        return self.execute_command(new_cmd, task_description)
+                else:
+                    return False, "Could not generate recovery command"
+
+            return True, result.stdout
+
         except Exception as e:
             return False, str(e)
 
@@ -84,7 +147,7 @@ class ShellHelper:
                     else:
                         print(f"\n>>> {cmd}")
 
-                    success, output = self.execute_command(cmd)
+                    success, output = self.execute_command(cmd, task)
                     if success:
                         print("✓ Success!")
                         if output.strip():
