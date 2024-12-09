@@ -13,6 +13,11 @@ def gather_system_info(task: str, dir_structure: str = "") -> str:
     """You are a CLI intelligence gatherer. Your goal is to identify what information
     would be helpful to know before suggesting commands for the given task.
 
+    IMPORTANT: Scale your response to the complexity of the task:
+    - For simple greetings or basic commands (hi, hello, ls, etc), return NO commands
+    - For basic file operations, return only immediately relevant commands
+    - Only for complex operations (git, building, deploying) gather comprehensive information
+
     Return ONLY executable shell commands that gather information, one per line.
     These commands should be safe information gathering commands like ls, pwd, git status, etc.
     DO NOT return commands that make any changes."""
@@ -40,9 +45,14 @@ def analyze_system_state(
     """You are a CLI system state analyzer. Your goal is to assess the current state
     and determine what actions need to be taken to accomplish the task.
 
+    IMPORTANT: Scale your analysis to the task complexity:
+    - For greetings (hi, hello) or basic informational commands (ls, pwd), keep analysis minimal
+    - For simple file operations, focus only on the immediate task
+    - Only provide detailed analysis for complex operations (git, building, deploying)
+
     Return a concise analysis of:
-    1. What needs to be done
-    2. Any potential issues or risks
+    1. What needs to be done (scaled to task complexity)
+    2. Any potential issues or risks (only if relevant)
     3. Whether the task is complete or what remains to be done"""
 
     info_str = "\n".join(f"{cmd}:\n{output}" for cmd, output in gathered_info.items())
@@ -82,6 +92,12 @@ def get_next_commands(
 ) -> str:
     """You are a helpful and intelligent CLI assistant that suggests bash commands.
     Your goal is to provide the next step(s) needed based on the current analysis.
+
+    IMPORTANT: Scale your response to the task complexity:
+    - For greetings (hi, hello): return TASK_COMPLETE immediately
+    - For basic commands (ls, pwd): return only the exact command requested
+    - For simple file operations: return minimal required commands
+    - Only for complex operations: return multi-step command sequences
 
     Return ONLY executable commands, one per line. If no further commands are needed,
     return 'TASK_COMPLETE'.
@@ -198,7 +214,12 @@ class ShellHelper:
     def process_task(self, task: str) -> bool:
         """Process a single task with information gathering and analysis."""
         try:
-            # Step 1: Gather information
+            # Quick handling of simple greetings
+            if task.lower().strip() in ["hi", "hello", "hey"]:
+                logger.info("\n👋 Hello! How can I help you?")
+                return True
+
+            # Step 1: Gather information (scaled to task complexity)
             gathered_info = self.gather_information(task)
 
             while True:
