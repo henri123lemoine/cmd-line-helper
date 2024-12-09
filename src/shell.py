@@ -176,6 +176,7 @@ class ShellHelper:
     def execute_command(self, command: str, task_description: str) -> Tuple[bool, str]:
         """Execute a shell command and return success status and output."""
         try:
+            logger.debug(f"Executing command: {command}")
             args = shlex.split(command)
             result = subprocess.run(args, shell=False, capture_output=True, text=True, check=False)
 
