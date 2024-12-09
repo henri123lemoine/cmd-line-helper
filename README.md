@@ -10,7 +10,12 @@ curl -L https://raw.githubusercontent.com/henri123lemoine/cmd-line-helper/main/i
 
 ## Development
 
-Clone the repository at `git clone https://github.com/henri123lemoine/cmd-line-helper.git`.
+Clone the repository and run the install script:
+```bash
+git clone https://github.com/henri123lemoine/cmd-line-helper.git`
+cd cmd-line-helper
+./install.sh --local
+```
 
 ## Usage
 
