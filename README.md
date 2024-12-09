@@ -49,15 +49,21 @@ cmd-helper --trust
 ## Examples
 
 ```bash
-$ cmd-helper
-Welcome to the LLM Shell Helper!
+$ cmd-helper --trust
+Welcome to the LLM Shell Helper! (trust mode activated)
 
-What would you like to do? (or 'exit' to quit): commit my recent changes
+What would you like to do? (or 'exit' to quit): commit the changes to shell.py
 
->>> git add .
+>>> git add shell.py
+
+🔄 Attempting recovery with modified command...
+
+>>> git add src/shell.py
 ✓ Success!
->>> git commit -m "Update command helper implementation"
+
+>>> git commit -m "Committing changes to shell.py"
 ✓ Success!
-[main a1b2c3d] Update command helper implementation
- 3 files changed, 45 insertions(+), 12 deletions(-)
-```
+[main 06bb89e] Committing changes to shell.py
+ 1 file changed, 74 insertions(+), 14 deletions(-)
+
+What would you like to do? (or 'exit' to quit): ```
