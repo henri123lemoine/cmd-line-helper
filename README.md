@@ -36,30 +36,30 @@ cd cmd-line-helper
 ### No Debug
 
 ```bash
-cmd-helper --trust
+~/Documents/Programming/PersonalProjects/cmd_line_helper (main*) » cmd
+-helper --trust
 Welcome to the LLM Shell Helper! (trust mode activated)
 
-What would you like to do? (or 'exit' to quit): hey
+What would you like to do? (or 'exit' to quit): hi
 
 👋 Hello! How can I help you?
 
-What would you like to do? (or 'exit' to quit): can you tlel me hwo to commit a ne wfile called bob.py
+What would you like to do? (or 'exit' to quit): add changes to install.sh to githb
 
 🔍 Gathering system information...
 
 📊 Analyzing current state...
 
->>> touch bob.py
+>>> git add install.sh
 ✓ Success!
 
->>> git add bob.py
+>>> git commit -m "Update install.sh with relevant changes"
 ✓ Success!
+[main e001043] Update install.sh with relevant changes
+ 1 file changed, 14 insertions(+), 78 deletions(-)
 
->>> git commit -m "Add bob.py"
+>>> git push origin main
 ✓ Success!
-[main 8577392] Add bob.py
- 1 file changed, 0 insertions(+), 0 deletions(-)
- create mode 100644 bob.py
 
 📊 Analyzing current state...
 
