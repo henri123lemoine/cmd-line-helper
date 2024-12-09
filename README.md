@@ -5,29 +5,12 @@ An AI-powered command-line helper that suggests and executes shell commands.
 ## Quick Install
 
 ```bash
-curl -L https://raw.githubusercontent.com/yourusername/cmd-line-helper/main/install.sh | bash
+curl -L https://raw.githubusercontent.com/henri123lemoine/cmd-line-helper/main/install.sh | bash
 ```
 
-This repository runs with `uv`.
+## Development
 
-## Installation
-
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/henri123lemoine/cmd-line-helper.git
-    cd cmd-line-helper
-    ```
-
-2. Install dependencies:
-    ```bash
-    uv sync
-    ```
-
-3. Run the local installation script:
-    ```bash
-    chmod +x ./local-install.sh
-    ./local-install.sh
-    ```
+Clone the repository at `git clone https://github.com/henri123lemoine/cmd-line-helper.git`.
 
 ## Usage
 
@@ -36,15 +19,12 @@ This repository runs with `uv`.
     export OPENAI_API_KEY=your-key-here
     ```
 
-2. Run the helper:
-    ```bash
-    cmd-helper
-    ```
+2. Run `./install.sh` to install the helper.
 
-Or with trust mode (no command confirmations):
-```bash
-cmd-helper --trust
-```
+3. Run the helper:
+    ```bash
+    cmd-helper [--trust] [--debug]
+    ```
 
 ## Examples
 
